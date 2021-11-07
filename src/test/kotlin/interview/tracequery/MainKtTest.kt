@@ -26,7 +26,7 @@ internal class MainKtTest {
         )
     }
 
-    val sampleGraph = mapOf(
+    private val sampleGraph = mapOf(
         'A' to mapOf(
             'B' to Trace('A', 'B', 5),
             'D' to Trace('A', 'D', 6),
@@ -41,6 +41,7 @@ internal class MainKtTest {
         'D' to mapOf(
             'C' to Trace('D', 'C', 4)
         ),
+        'E' to mapOf()
     )
 
     @Test
@@ -76,27 +77,11 @@ internal class MainKtTest {
         assertEquals(13, pathCost(traces, listOf('A', 'D', 'C')))
         assertEquals(22, pathCost(traces, listOf('A', 'E', 'B', 'C', 'D')))
         assertNull(pathCost(traces, listOf('A', 'E', 'D')))
-
-        // TODO To be implemented
-
-//        6. The number of traces originating in service C and ending in service C with a maximum of
-//        3 hops. In the sample data below there are two such traces: C-D-C (2 stops) and
-//        C-E-B-C (3 stops).
-//        7. The number of traces originating in A and ending in C with exactly 4 hops. In the sample
-//        data below there are three such traces: A to C (via B, C, D); A to C (via D, C, D); and A
-//                to C (via D, E, B).
-//        8. The length of the shortest trace (in terms of latency) between A and C.
-//        9. The length of the shortest trace (in terms of latency) between B and B.
-//
-//        10. The number of different traces from C to C with an average latency of less than 30. In
-//        the same data, the traces are C-D-C, C-E-B-C, C-E-B-C-D-C, C-D-C-E-B-C, C-D-E-B-C,
-//        C-E-B-C-E-B-C, C-E-B-C-E-B-C-E-B-C.
-
-//        6. 2
-//        7. 3
-//        8. 9
-//        9. 9
-//        10. 7
+        assertEquals(2, countCtoCTracesWithDepthTo3(traces))
+        assertEquals(3, countAtoCTracesWithDepth4(traces))
+        assertEquals(9, shortestPathCost(traces, 'A', 'C'))
+        assertEquals(9, shortestPathCost(traces, 'B', 'B'))
+        assertEquals(7, countCtoCTracesWithCostLess30(traces))
     }
 
 }

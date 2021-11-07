@@ -25,14 +25,15 @@ fun lineToTraces(line: String): Sequence<Trace> =
 
 fun loadTraceGraph(reader: BufferedReader): TraceGraph =
     reader.useLines { lines ->
-        val traces = lines.flatMap(::lineToTraces)
-        return mutableMapOf<NodeKey, MutableMap<NodeKey, Trace>>()
+        mutableMapOf<NodeKey, MutableMap<NodeKey, Trace>>()
             .withDefault { mutableMapOf() }
             .apply {
-                for (t in traces) {
+                for (t in lines.flatMap(::lineToTraces)) {
                     val m = getValue(t.from)
                     m[t.to] = t
                     put(t.from, m)
+                    // Also keep terminating nodes for convenience
+                    put(t.to, getValue(t.to))
                 }
             }
     }
@@ -43,12 +44,16 @@ data class TracePath(
     val depth: Int,
     val cost: Cost
 ) {
-    fun append(path: TracePath, trace: Trace): TracePath {
-        assert(path.node == trace.from)
-        assert(trace.cost > 0)
-        return TracePath(path, trace.to, path.depth + 1, path.cost + trace.cost)
+    fun append(trace: Trace): TracePath {
+        assert(node == trace.from)
+        assert(trace.cost > 0) // Otherwise, cost-dependent procedures are not guaranteed to stop.
+        return TracePath(this, trace.to, depth + 1, cost + trace.cost)
     }
 
+    /**
+     * Can be used for debugging output like
+     * println(path.toNodePath())
+     */
     fun toNodePath(): NodePath {
         val nodes = arrayListOf<NodeKey>()
         var here: TracePath? = this;
@@ -61,20 +66,92 @@ data class TracePath(
     }
 }
 
-fun emptyTracePath(startNode: NodeKey) = TracePath(null, startNode, 0, 0);
+fun newTracePath(startNode: NodeKey) = TracePath(null, startNode, 0, 0)
 
-sealed class TraceResult<R>
-class NoAnswer<R> : TraceResult<R>()
-class QueryResult<R>(val result: R) : TraceResult<R>()
-class Continue<R> : TraceResult<R>()
-
-fun <R> traverse(
-    handleTrace: (depth: Int, t: Trace) -> TraceResult<R>,
+/**
+ * @param handlePath Gets every path encountered. Must return false if the path should not be followed any further.
+ */
+fun walkTraces(
     traces: TraceGraph,
-    depth: Int
+    fromNode: NodeKey,
+    handlePath: (path: TracePath) -> Boolean
 ) {
-    assert(depth >= 0)
+    assert(traces.containsKey(fromNode))
+    val queue = ArrayDeque<TracePath>()
+    queue.add(newTracePath(fromNode))
+    while (true) {
+        val here = queue.removeFirstOrNull() ?: break
+        for (p in traces[here.node]!!.values.map(here::append)) {
+            if (handlePath(p))
+                queue.add(p);
+        }
+    }
 }
+
+fun countCtoCTracesWithDepthTo3(traces: TraceGraph): Int {
+    var pathCount = 0
+    walkTraces(traces, 'C') { path ->
+        if (path.depth > 3) {
+            false
+        } else {
+            if (path.node == 'C') pathCount++
+            true
+        }
+    }
+    return pathCount
+}
+
+fun countAtoCTracesWithDepth4(traces: TraceGraph): Int {
+    var pathCount = 0
+    walkTraces(traces, 'A') { path ->
+        if (path.depth == 4) {
+            if (path.node == 'C') pathCount++
+            false
+        } else {
+            true
+        }
+    }
+    return pathCount
+}
+
+fun countCtoCTracesWithCostLess30(traces: TraceGraph): Int {
+    var pathCount = 0
+    walkTraces(traces, 'C') { path ->
+        if (path.cost >= 30) {
+            false
+        } else {
+            if (path.node == 'C') pathCount++
+            true
+        }
+    }
+    return pathCount
+}
+
+fun shortestPathCost(traces: TraceGraph, fromNode: NodeKey, toNode: NodeKey): Cost? {
+    var minCost: Cost? = null
+    val visited = mutableSetOf<NodeKey>()
+    walkTraces(traces, fromNode) { path ->
+        /*if (minCost != null && minCost!! <= path.cost) // An optimization
+            false
+        else */if (visited.contains(path.node)) {
+            // Any loop is guaranteed to cost more than the shortcut.
+            // It is also a stopping condition in case no path to target has been found yet
+            // (we may be going in cycles without it).
+            false
+        } else {
+            visited.add(path.node)
+            if ((minCost == null || minCost!! > path.cost)
+                && path.node == toNode
+            ) {
+                minCost = path.cost
+                false
+            } else
+                true
+        }
+    }
+    return minCost
+}
+
 
 fun pathCost(traces: TraceGraph, path: NodePath): Cost? {
     if (path.isEmpty()) return 0
