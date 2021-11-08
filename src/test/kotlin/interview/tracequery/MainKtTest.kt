@@ -14,14 +14,14 @@ internal class MainKtTest {
                 Trace('A', 'B', 5),
                 Trace('B', 'C', 4),
                 Trace('C', 'D', 8),
-                Trace('D', 'C', 8),
-                Trace('E', 'B', 3),
+                Trace('D', 'C', 891),
+                Trace('E', 'B', 31),
                 Trace('A', 'E', 7),
             ),
             lineToTraces(
                 """AB5, BC4, CD8
-                    DC8, 
-                    EB3, AE7"""
+                    DC891, 
+                    EB31, AE7"""
             ).toList()
         )
     }
@@ -79,8 +79,10 @@ internal class MainKtTest {
         assertNull(pathCost(traces, listOf('A', 'E', 'D')))
         assertEquals(2, countCtoCTracesWithDepthTo3(traces))
         assertEquals(3, countAtoCTracesWithDepth4(traces))
-        assertEquals(9, shortestPathCost(traces, 'A', 'C'))
-        assertEquals(9, shortestPathCost(traces, 'B', 'B'))
+        assertEquals(9, cheapestPathCost(traces, 'A', 'C'))
+        assertEquals(9, cheapestPathCost(traces, 'B', 'B'))
+        assertEquals(9, cheapestPathCost(traces, 'E', 'E')) // Extra
+        assertNull(cheapestPathCost(traces, 'C', 'A')) // Extra
         assertEquals(7, countCtoCTracesWithCostLess30(traces))
     }
 

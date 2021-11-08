@@ -11,7 +11,7 @@ typealias TraceGraph = Map<NodeKey, Map<NodeKey, Trace>>
 
 typealias NodePath = List<NodeKey>
 
-val tracePattern = Regex("([A-Z])([A-Z])(\\d)")
+val tracePattern = Regex("([A-Z])([A-Z])(\\d+)")
 
 fun lineToTraces(line: String): Sequence<Trace> =
     tracePattern.findAll(line)
@@ -30,9 +30,10 @@ fun loadTraceGraph(reader: BufferedReader): TraceGraph =
             .apply {
                 for (t in lines.flatMap(::lineToTraces)) {
                     val m = getValue(t.from)
+                    assert(!m.containsKey(t.to)) // No duplicate links (e.g. ABx ABy) allowed
                     m[t.to] = t
                     put(t.from, m)
-                    // Also keep terminating nodes for convenience
+                    // Ensure nodes without outgoing links are also available:
                     put(t.to, getValue(t.to))
                 }
             }
@@ -49,6 +50,14 @@ data class TracePath(
         assert(trace.cost > 0) // Otherwise, cost-dependent procedures are not guaranteed to stop.
         return TracePath(this, trace.to, depth + 1, cost + trace.cost)
     }
+
+    fun contains(n: NodeKey): Boolean =
+        if (node == n)
+            true
+        else if (prev == null)
+            false
+        else
+            prev.contains(n)
 
     /**
      * Can be used for debugging output like
@@ -69,7 +78,8 @@ data class TracePath(
 fun newTracePath(startNode: NodeKey) = TracePath(null, startNode, 0, 0)
 
 /**
- * @param handlePath Gets every path encountered. Must return false if the path should not be followed any further.
+ * @param handlePath Gets every path encountered except root.
+ *        Must return false if the path should not be followed any further.
  */
 fun walkTraces(
     traces: TraceGraph,
@@ -127,22 +137,19 @@ fun countCtoCTracesWithCostLess30(traces: TraceGraph): Int {
     return pathCount
 }
 
-fun shortestPathCost(traces: TraceGraph, fromNode: NodeKey, toNode: NodeKey): Cost? {
+fun cheapestPathCost(traces: TraceGraph, fromNode: NodeKey, toNode: NodeKey): Cost? {
     var minCost: Cost? = null
     val visited = mutableSetOf<NodeKey>()
     walkTraces(traces, fromNode) { path ->
-        /*if (minCost != null && minCost!! <= path.cost) // An optimization
-            false
-        else */if (visited.contains(path.node)) {
-            // Any loop is guaranteed to cost more than the shortcut.
-            // It is also a stopping condition in case no path to target has been found yet
+        if (visited.contains(path.node)) { // TODO Verify this (a counter example?)
+            // It is a stopping condition in case no path to target has been found yet
             // (we may be going in cycles without it).
             false
         } else {
             visited.add(path.node)
-            if ((minCost == null || minCost!! > path.cost)
-                && path.node == toNode
-            ) {
+            if (minCost != null && minCost!! <= path.cost)
+                false // An optimization: the path is already too expensive
+            else if (path.node == toNode) {
                 minCost = path.cost
                 false
             } else
@@ -152,6 +159,37 @@ fun shortestPathCost(traces: TraceGraph, fromNode: NodeKey, toNode: NodeKey): Co
     return minCost
 }
 
+
+/**
+ * Dijkstra's shortest path. A problem with it that it gives 0 cost for X to X paths.
+ */
+fun cheapestPathCostD(traces: TraceGraph, fromNode: NodeKey, toNode: NodeKey): Cost? {
+    // Dijkstra algorithm https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm
+    val costs: MutableMap<NodeKey, Cost> = mutableMapOf() // TODO Use "with default"
+    traces.keys.map { nodeKey -> nodeKey to Cost.MAX_VALUE }.toMap(costs)
+    val unvisited: MutableSet<NodeKey> = traces.keys.toMutableSet()
+
+    costs[fromNode] = 0
+    var node = fromNode;
+    unvisited.remove(node)
+    while (unvisited.isNotEmpty()) {
+        for (adj in traces[node]!!.values) {
+            val c = costs[node]!! + adj.cost
+            if (c < costs[adj.to]!!)
+                costs[adj.to] = c
+        }
+
+        var nextCost: Cost = Cost.MAX_VALUE
+        for (n in unvisited) {
+            if (nextCost >= costs[n]!!) {
+                nextCost = costs[n]!!
+                node = n
+            }
+        }
+        unvisited.remove(node)
+    }
+    return costs[toNode]
+}
 
 fun pathCost(traces: TraceGraph, path: NodePath): Cost? {
     if (path.isEmpty()) return 0
@@ -175,11 +213,17 @@ fun <T> maybeResultMsg(x: T?) = x?.toString() ?: "NO SUCH TRACE"
 object Main {
     @JvmStatic
     fun main(args: Array<String>) {
-        // val exampleInput = System.`in`.bufferedReader()
-        val exampleInput = """AB5, BC4, CD8, DC8, DE6, AD5, CE2, EB3, AE7"""
-            .reader().buffered()
-        val traces = loadTraceGraph(exampleInput)
-        println(traces)
-        println(maybeResultMsg(pathCost(traces, listOf('A', 'A', 'A', 'A', 'A'))))
+        val traces = loadTraceGraph(System.`in`.bufferedReader())
+        assert(traces.isNotEmpty())
+        println(maybeResultMsg(pathCost(traces, listOf('A', 'B', 'C'))))
+        println(maybeResultMsg(pathCost(traces, listOf('A', 'D'))))
+        println(maybeResultMsg(pathCost(traces, listOf('A', 'D', 'C'))))
+        println(maybeResultMsg(pathCost(traces, listOf('A', 'E', 'B', 'C', 'D'))))
+        println(maybeResultMsg(pathCost(traces, listOf('A', 'E', 'D'))))
+        println(countCtoCTracesWithDepthTo3(traces))
+        println(countAtoCTracesWithDepth4(traces))
+        println(maybeResultMsg(cheapestPathCost(traces, 'A', 'C')))
+        println(maybeResultMsg(cheapestPathCost(traces, 'B', 'B')))
+        println(countCtoCTracesWithCostLess30(traces))
     }
 }
