@@ -137,7 +137,7 @@ fun countCtoCTracesWithCostLess30(traces: TraceGraph): Int {
     return pathCount
 }
 
-fun cheapestPathCost(traces: TraceGraph, fromNode: NodeKey, toNode: NodeKey): Cost? {
+fun cheapestPathCostBrute(traces: TraceGraph, fromNode: NodeKey, toNode: NodeKey): Cost? {
     var minCost: Cost? = null
     val visited = mutableSetOf<NodeKey>()
     walkTraces(traces, fromNode) { path ->
@@ -159,6 +159,27 @@ fun cheapestPathCost(traces: TraceGraph, fromNode: NodeKey, toNode: NodeKey): Co
     return minCost
 }
 
+fun cheapestPathCost(traces: TraceGraph, fromNode: NodeKey, toNode: NodeKey): Cost? {
+    var minCost: Cost? = null
+    val visited = mutableMapOf<NodeKey, TracePath>()
+    walkTraces(traces, fromNode) { path ->
+        if ((visited[path.node]?.cost ?: Cost.MAX_VALUE) < path.cost) {
+            // It is a stopping condition in case no path to target has been found yet
+            // (we may be going in cycles without it).
+            false
+        } else {
+            visited[path.node] = path
+            if (minCost != null && minCost!! <= path.cost)
+                false // An optimization: the path is already too expensive
+            else if (path.node == toNode) {
+                minCost = path.cost
+                false
+            } else
+                true
+        }
+    }
+    return minCost
+}
 
 /**
  * Dijkstra's shortest path. A problem with it that it gives 0 cost for X to X paths.
