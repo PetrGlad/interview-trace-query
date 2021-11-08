@@ -59,6 +59,18 @@ internal class MainKtTest {
     }
 
     @Test
+    fun testTracePath() {
+        val root = newTracePath('W')
+        assertEquals(0, root.cost)
+        assertNull(root.prev)
+        val path1 = root.append(Trace('W', 'E', 23))
+        val path2 = path1.append(Trace('E', 'B', 51))
+        assertEquals(23, path1.cost)
+        assertEquals(74, path2.cost)
+        assertEquals(listOf('W', 'E', 'B'), path2.toNodePath())
+    }
+
+    @Test
     fun testPathCost() {
         assertEquals(0, pathCost(sampleGraph, listOf()))
         assertNull(pathCost(sampleGraph, listOf('Z')))

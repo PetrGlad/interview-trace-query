@@ -52,8 +52,7 @@ data class TracePath(
     }
 
     /**
-     * Can be used for debugging output like
-     * println(path.toNodePath())
+     * Can be used for debugging output like println(path.toNodePath())
      */
     fun toNodePath(): NodePath {
         val nodes = arrayListOf<NodeKey>()
