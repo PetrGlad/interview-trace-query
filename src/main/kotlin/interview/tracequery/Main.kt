@@ -51,14 +51,6 @@ data class TracePath(
         return TracePath(this, trace.to, depth + 1, cost + trace.cost)
     }
 
-    fun contains(n: NodeKey): Boolean =
-        if (node == n)
-            true
-        else if (prev == null)
-            false
-        else
-            prev.contains(n)
-
     /**
      * Can be used for debugging output like
      * println(path.toNodePath())
@@ -137,28 +129,6 @@ fun countCtoCTracesWithCostLess30(traces: TraceGraph): Int {
     return pathCount
 }
 
-fun cheapestPathCostBrute(traces: TraceGraph, fromNode: NodeKey, toNode: NodeKey): Cost? {
-    var minCost: Cost? = null
-    val visited = mutableSetOf<NodeKey>()
-    walkTraces(traces, fromNode) { path ->
-        if (visited.contains(path.node)) { // TODO Verify this (a counter example?)
-            // It is a stopping condition in case no path to target has been found yet
-            // (we may be going in cycles without it).
-            false
-        } else {
-            visited.add(path.node)
-            if (minCost != null && minCost!! <= path.cost)
-                false // An optimization: the path is already too expensive
-            else if (path.node == toNode) {
-                minCost = path.cost
-                false
-            } else
-                true
-        }
-    }
-    return minCost
-}
-
 fun cheapestPathCost(traces: TraceGraph, fromNode: NodeKey, toNode: NodeKey): Cost? {
     var minCost: Cost? = null
     val visited = mutableMapOf<NodeKey, TracePath>()
@@ -179,36 +149,6 @@ fun cheapestPathCost(traces: TraceGraph, fromNode: NodeKey, toNode: NodeKey): Co
         }
     }
     return minCost
-}
-
-/**
- * Dijkstra's shortest path. A problem with it that it gives 0 cost for X to X paths.
- */
-fun cheapestPathCostDijkstra(traces: TraceGraph, fromNode: NodeKey, toNode: NodeKey): Cost? {
-    // Dijkstra algorithm https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm
-    val costs = mutableMapOf<NodeKey, Cost>().withDefault { Cost.MAX_VALUE }
-    val unvisited = traces.keys.toMutableSet()
-
-    costs[fromNode] = 0
-    var node = fromNode;
-    unvisited.remove(node)
-    while (unvisited.isNotEmpty()) {
-        for (adj in traces[node]!!.values) {
-            val c = costs.getValue(node) + adj.cost
-            if (c < costs.getValue(adj.to))
-                costs[adj.to] = c
-        }
-
-        var nextCost: Cost = Cost.MAX_VALUE
-        for (n in unvisited) {
-            if (nextCost >= costs.getValue(n)) {
-                nextCost = costs.getValue(n)
-                node = n
-            }
-        }
-        unvisited.remove(node)
-    }
-    return costs[toNode]
 }
 
 fun pathCost(traces: TraceGraph, path: NodePath): Cost? {
