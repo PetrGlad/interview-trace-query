@@ -163,26 +163,25 @@ fun cheapestPathCost(traces: TraceGraph, fromNode: NodeKey, toNode: NodeKey): Co
 /**
  * Dijkstra's shortest path. A problem with it that it gives 0 cost for X to X paths.
  */
-fun cheapestPathCostD(traces: TraceGraph, fromNode: NodeKey, toNode: NodeKey): Cost? {
+fun cheapestPathCostDijkstra(traces: TraceGraph, fromNode: NodeKey, toNode: NodeKey): Cost? {
     // Dijkstra algorithm https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm
-    val costs: MutableMap<NodeKey, Cost> = mutableMapOf() // TODO Use "with default"
-    traces.keys.map { nodeKey -> nodeKey to Cost.MAX_VALUE }.toMap(costs)
-    val unvisited: MutableSet<NodeKey> = traces.keys.toMutableSet()
+    val costs = mutableMapOf<NodeKey, Cost>().withDefault { Cost.MAX_VALUE }
+    val unvisited = traces.keys.toMutableSet()
 
     costs[fromNode] = 0
     var node = fromNode;
     unvisited.remove(node)
     while (unvisited.isNotEmpty()) {
         for (adj in traces[node]!!.values) {
-            val c = costs[node]!! + adj.cost
-            if (c < costs[adj.to]!!)
+            val c = costs.getValue(node) + adj.cost
+            if (c < costs.getValue(adj.to))
                 costs[adj.to] = c
         }
 
         var nextCost: Cost = Cost.MAX_VALUE
         for (n in unvisited) {
-            if (nextCost >= costs[n]!!) {
-                nextCost = costs[n]!!
+            if (nextCost >= costs.getValue(n)) {
+                nextCost = costs.getValue(n)
                 node = n
             }
         }
