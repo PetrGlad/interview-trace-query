@@ -3,6 +3,7 @@ package interview.tracequery
 import org.junit.jupiter.api.Test
 
 import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.fail
 import java.io.StringReader
 
 internal class MainKtTest {
@@ -68,6 +69,85 @@ internal class MainKtTest {
         assertEquals(23, path1.cost)
         assertEquals(74, path2.cost)
         assertEquals(listOf('W', 'E', 'B'), path2.toNodePath())
+    }
+
+    private val exampleMultipathTraces = loadTraceGraph(
+        "AB2,AC3,BE5,BD7,CD11,CE13,DF17,EF19,FA23,BZ29"
+            .reader().buffered()
+    )
+
+    @Test
+    fun testWalkTraces() {
+        val paths = mutableSetOf<TracePath>()
+        walkTraces(exampleMultipathTraces, 'A') { t ->
+            if (t.depth > 5) false
+            else {
+                paths.add(t)
+                true
+            }
+        }
+        assertEquals(
+            setOf(
+                listOf('A', 'B'),
+                listOf('A', 'C'),
+                listOf('A', 'B', 'E'),
+                listOf('A', 'B', 'D'),
+                listOf('A', 'B', 'Z'),
+                listOf('A', 'C', 'D'),
+                listOf('A', 'C', 'E'),
+                listOf('A', 'B', 'E', 'F'),
+                listOf('A', 'B', 'D', 'F'),
+                listOf('A', 'C', 'D', 'F'),
+                listOf('A', 'C', 'E', 'F'),
+                listOf('A', 'B', 'E', 'F', 'A'),
+                listOf('A', 'B', 'D', 'F', 'A'),
+                listOf('A', 'C', 'D', 'F', 'A'),
+                listOf('A', 'C', 'E', 'F', 'A'),
+                listOf('A', 'B', 'E', 'F', 'A', 'B'),
+                listOf('A', 'B', 'E', 'F', 'A', 'C'),
+                listOf('A', 'B', 'D', 'F', 'A', 'B'),
+                listOf('A', 'B', 'D', 'F', 'A', 'C'),
+                listOf('A', 'C', 'D', 'F', 'A', 'B'),
+                listOf('A', 'C', 'D', 'F', 'A', 'C'),
+                listOf('A', 'C', 'E', 'F', 'A', 'B'),
+                listOf('A', 'C', 'E', 'F', 'A', 'C')
+            ),
+            paths.map(TracePath::toNodePath).toSet()
+        )
+    }
+
+    @Test
+    fun testWalkTraces_empty() {
+        walkTraces(mapOf(), 'R') {
+            fail("Shoulid not be invoked.")
+        }
+    }
+
+    @Test
+    fun testCheapestPathCost() {
+        fun testCost(from: NodeKey, to: NodeKey, expected: Cost?) {
+            if (expected == null)
+                assertNull(cheapestPathCost(exampleMultipathTraces, from, to))
+            else
+                assertEquals(expected, cheapestPathCost(exampleMultipathTraces, from, to))
+        }
+
+        // Unreachable paths
+        for (n in listOf('A', 'B', 'C', 'D', 'E', 'F')) {
+            testCost('Z', n, null)
+        }
+
+        testCost('A', 'B', 2)
+        testCost('A', 'C', 3)
+        testCost('A', 'D', 9)
+        testCost('A', 'E', 7)
+        testCost('A', 'F', 26)
+
+        testCost('D', 'A', 40)
+        testCost('D', 'B', 42)
+        testCost('D', 'C', 43)
+        testCost('D', 'E', 47)
+        testCost('D', 'F', 17)
     }
 
     @Test

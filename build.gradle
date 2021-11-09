@@ -1,9 +1,10 @@
 plugins {
     id 'org.jetbrains.kotlin.jvm' version '1.5.10'
     id 'java'
+    id 'application'
 }
 
-group 'org.example'
+group 'interview.tracequery'
 version '1.0-SNAPSHOT'
 
 repositories {
@@ -19,4 +20,24 @@ dependencies {
 
 test {
     useJUnitPlatform()
+}
+
+ext {
+    javaMainClass = 'interview.tracequery.Main'
+}
+
+jar {
+    manifest {
+        attributes(
+            'Main-Class': javaMainClass
+        )
+    }
+
+    from {
+        configurations.compileClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
+
+application {
+    mainClass = javaMainClass
 }

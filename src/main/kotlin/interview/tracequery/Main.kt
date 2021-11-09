@@ -3,6 +3,7 @@ package interview.tracequery
 import java.io.BufferedReader
 
 typealias NodeKey = Char
+
 typealias Cost = Long
 
 data class Trace(val from: NodeKey, val to: NodeKey, val cost: Cost)
@@ -69,6 +70,8 @@ data class TracePath(
 fun newTracePath(startNode: NodeKey) = TracePath(null, startNode, 0, 0)
 
 /**
+ * Traverse all possible paths that start from specified node.
+ *
  * @param handlePath Gets every path encountered except root.
  *        Must return false if the path should not be followed any further.
  */
@@ -77,18 +80,21 @@ fun walkTraces(
     fromNode: NodeKey,
     handlePath: (path: TracePath) -> Boolean
 ) {
-    assert(traces.containsKey(fromNode))
     val queue = ArrayDeque<TracePath>()
     queue.add(newTracePath(fromNode))
     while (true) {
         val here = queue.removeFirstOrNull() ?: break
-        for (p in traces[here.node]!!.values.map(here::append)) {
+        val fromHere = traces[here.node] ?: break
+        for (p in fromHere.values.map(here::append)) {
             if (handlePath(p))
                 queue.add(p);
         }
     }
 }
 
+/**
+ * Count all paths from node C which have not more than 3 connections.
+ */
 fun countCtoCTracesWithDepthTo3(traces: TraceGraph): Int {
     var pathCount = 0
     walkTraces(traces, 'C') { path ->
@@ -102,6 +108,9 @@ fun countCtoCTracesWithDepthTo3(traces: TraceGraph): Int {
     return pathCount
 }
 
+/**
+ * Count all paths from node C which have 3 connections.
+ */
 fun countAtoCTracesWithDepth4(traces: TraceGraph): Int {
     var pathCount = 0
     walkTraces(traces, 'A') { path ->
@@ -115,6 +124,9 @@ fun countAtoCTracesWithDepth4(traces: TraceGraph): Int {
     return pathCount
 }
 
+/**
+ * Count all paths from node C which cost less than 30.
+ */
 fun countCtoCTracesWithCostLess30(traces: TraceGraph): Int {
     var pathCount = 0
     walkTraces(traces, 'C') { path ->
@@ -128,6 +140,9 @@ fun countCtoCTracesWithCostLess30(traces: TraceGraph): Int {
     return pathCount
 }
 
+/**
+ * Find cost of cheapest non-empty path between specified nodes.
+ */
 fun cheapestPathCost(traces: TraceGraph, fromNode: NodeKey, toNode: NodeKey): Cost? {
     var minCost: Cost? = null
     val visited = mutableMapOf<NodeKey, TracePath>()
@@ -139,7 +154,8 @@ fun cheapestPathCost(traces: TraceGraph, fromNode: NodeKey, toNode: NodeKey): Co
         } else {
             visited[path.node] = path
             if (minCost != null && minCost!! <= path.cost)
-                false // An optimization: the path is already too expensive
+                // An optimization: the path is already known to be too expensive
+                false
             else if (path.node == toNode) {
                 minCost = path.cost
                 false
@@ -150,6 +166,9 @@ fun cheapestPathCost(traces: TraceGraph, fromNode: NodeKey, toNode: NodeKey): Co
     return minCost
 }
 
+/**
+ * Get cost of specified path.
+ */
 fun pathCost(traces: TraceGraph, path: NodePath): Cost? {
     if (path.isEmpty()) return 0
     if (path.size == 1) {
@@ -167,22 +186,22 @@ fun pathCost(traces: TraceGraph, path: NodePath): Cost? {
     return cost
 }
 
-fun <T> maybeResultMsg(x: T?) = x?.toString() ?: "NO SUCH TRACE"
+fun <T> resultMsg(x: T?) = x?.toString() ?: "NO SUCH TRACE"
 
 object Main {
     @JvmStatic
     fun main(args: Array<String>) {
         val traces = loadTraceGraph(System.`in`.bufferedReader())
         assert(traces.isNotEmpty())
-        println(maybeResultMsg(pathCost(traces, listOf('A', 'B', 'C'))))
-        println(maybeResultMsg(pathCost(traces, listOf('A', 'D'))))
-        println(maybeResultMsg(pathCost(traces, listOf('A', 'D', 'C'))))
-        println(maybeResultMsg(pathCost(traces, listOf('A', 'E', 'B', 'C', 'D'))))
-        println(maybeResultMsg(pathCost(traces, listOf('A', 'E', 'D'))))
+        println(resultMsg(pathCost(traces, listOf('A', 'B', 'C'))))
+        println(resultMsg(pathCost(traces, listOf('A', 'D'))))
+        println(resultMsg(pathCost(traces, listOf('A', 'D', 'C'))))
+        println(resultMsg(pathCost(traces, listOf('A', 'E', 'B', 'C', 'D'))))
+        println(resultMsg(pathCost(traces, listOf('A', 'E', 'D'))))
         println(countCtoCTracesWithDepthTo3(traces))
         println(countAtoCTracesWithDepth4(traces))
-        println(maybeResultMsg(cheapestPathCost(traces, 'A', 'C')))
-        println(maybeResultMsg(cheapestPathCost(traces, 'B', 'B')))
+        println(resultMsg(cheapestPathCost(traces, 'A', 'C')))
+        println(resultMsg(cheapestPathCost(traces, 'B', 'B')))
         println(countCtoCTracesWithCostLess30(traces))
     }
 }
