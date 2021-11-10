@@ -151,6 +151,26 @@ internal class MainKtTest {
     }
 
     @Test
+    fun testCountCtoCTracesWithDepthTo3() {
+        assertEquals(0, countCtoCTracesWithMaxDepthLimit(exampleMultipathTraces))
+        assertEquals(2, countCtoCTracesWithMaxDepthLimit(exampleMultipathTraces, 4))
+    }
+
+    @Test
+    fun testCountAtoCTracesWithDepth4() {
+        assertEquals(0, countAtoCTracesWithDepth4(exampleMultipathTraces))
+        assertEquals(1, countAtoCTracesWithDepth4(exampleMultipathTraces, 1))
+        assertEquals(4, countAtoCTracesWithDepth4(exampleMultipathTraces, 5))
+    }
+
+    @Test
+    fun testCountCtoCTracesWithCostLess30() {
+        assertEquals(0, countCtoCTracesWithLimitedCost(exampleMultipathTraces))
+        assertEquals(1, countCtoCTracesWithLimitedCost(exampleMultipathTraces, 55))
+        assertEquals(2, countCtoCTracesWithLimitedCost(exampleMultipathTraces, 59))
+    }
+
+    @Test
     fun testPathCost() {
         assertEquals(0, pathCost(sampleGraph, listOf()))
         assertNull(pathCost(sampleGraph, listOf('Z')))
@@ -169,13 +189,13 @@ internal class MainKtTest {
         assertEquals(13, pathCost(traces, listOf('A', 'D', 'C')))
         assertEquals(22, pathCost(traces, listOf('A', 'E', 'B', 'C', 'D')))
         assertNull(pathCost(traces, listOf('A', 'E', 'D')))
-        assertEquals(2, countCtoCTracesWithDepthTo3(traces))
+        assertEquals(2, countCtoCTracesWithMaxDepthLimit(traces))
         assertEquals(3, countAtoCTracesWithDepth4(traces))
         assertEquals(9, cheapestPathCost(traces, 'A', 'C'))
         assertEquals(9, cheapestPathCost(traces, 'B', 'B'))
         assertEquals(9, cheapestPathCost(traces, 'E', 'E')) // Extra
         assertNull(cheapestPathCost(traces, 'C', 'A')) // Extra
-        assertEquals(7, countCtoCTracesWithCostLess30(traces))
+        assertEquals(7, countCtoCTracesWithLimitedCost(traces))
     }
 
 }

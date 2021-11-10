@@ -16,5 +16,5 @@ Scripts
 ## Running released version
 
 1. Download JAR from [Github](https://github.com/PetrGlad/interview-trace-query/releases/download/1.0.0/trace-query-1.0-SNAPSHOT.jar)
-2. Run `java -jar trace-query-1.0-SNAPSHOT.jar` (the program reads graph definition from standart input) 
+2. Run `java -jar trace-query-1.0-SNAPSHOT.jar` (the program reads graph definition from standard input) 
  

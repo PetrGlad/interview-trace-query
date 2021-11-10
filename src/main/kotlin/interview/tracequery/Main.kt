@@ -95,10 +95,10 @@ fun walkTraces(
 /**
  * Count all paths from node C which have not more than 3 connections.
  */
-fun countCtoCTracesWithDepthTo3(traces: TraceGraph): Int {
+fun countCtoCTracesWithMaxDepthLimit(traces: TraceGraph, maxDepth: Int = 3): Int {
     var pathCount = 0
     walkTraces(traces, 'C') { path ->
-        if (path.depth > 3) {
+        if (path.depth > maxDepth) {
             false
         } else {
             if (path.node == 'C') pathCount++
@@ -109,12 +109,12 @@ fun countCtoCTracesWithDepthTo3(traces: TraceGraph): Int {
 }
 
 /**
- * Count all paths from node C which have 3 connections.
+ * Count all paths from node C which have 4 edges.
  */
-fun countAtoCTracesWithDepth4(traces: TraceGraph): Int {
+fun countAtoCTracesWithDepth4(traces: TraceGraph, depth: Int = 4): Int {
     var pathCount = 0
     walkTraces(traces, 'A') { path ->
-        if (path.depth == 4) {
+        if (path.depth == depth) {
             if (path.node == 'C') pathCount++
             false
         } else {
@@ -125,15 +125,16 @@ fun countAtoCTracesWithDepth4(traces: TraceGraph): Int {
 }
 
 /**
- * Count all paths from node C which cost less than 30.
+ * Count all paths from node C which cost less than specified.
  */
-fun countCtoCTracesWithCostLess30(traces: TraceGraph): Int {
+fun countCtoCTracesWithLimitedCost(traces: TraceGraph, costLimit: Cost = 30): Int {
     var pathCount = 0
     walkTraces(traces, 'C') { path ->
-        if (path.cost >= 30) {
+        if (path.cost >= costLimit) {
             false
         } else {
-            if (path.node == 'C') pathCount++
+            if (path.node == 'C')
+                pathCount++
             true
         }
     }
@@ -198,10 +199,10 @@ object Main {
         println(resultMsg(pathCost(traces, listOf('A', 'D', 'C'))))
         println(resultMsg(pathCost(traces, listOf('A', 'E', 'B', 'C', 'D'))))
         println(resultMsg(pathCost(traces, listOf('A', 'E', 'D'))))
-        println(countCtoCTracesWithDepthTo3(traces))
+        println(countCtoCTracesWithMaxDepthLimit(traces))
         println(countAtoCTracesWithDepth4(traces))
         println(resultMsg(cheapestPathCost(traces, 'A', 'C')))
         println(resultMsg(cheapestPathCost(traces, 'B', 'B')))
-        println(countCtoCTracesWithCostLess30(traces))
+        println(countCtoCTracesWithLimitedCost(traces))
     }
 }
